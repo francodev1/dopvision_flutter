@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'token_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
-  return AuthService();
+  return AuthService(ref.watch(tokenServiceProvider));
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {
@@ -11,18 +12,37 @@ final authStateProvider = StreamProvider<User?>((ref) {
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TokenService _tokenService;
+
+  AuthService(this._tokenService);
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   
   User? get currentUser => _auth.currentUser;
 
-  // Login
-  Future<UserCredential> signIn(String email, String password) async {
+  // Login com salvamento de token
+  Future<UserCredential> signIn(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      
+      // Salva tokens
+      final token = await credential.user?.getIdToken();
+      if (token != null) {
+        await _tokenService.saveTokens(
+          accessToken: token,
+          refreshToken: token, // Firebase gerencia refresh automaticamente
+          rememberMe: rememberMe,
+        );
+      }
+      
+      return credential;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -40,8 +60,9 @@ class AuthService {
     }
   }
 
-  // Logout
+  // Logout com limpeza de tokens
   Future<void> signOut() async {
+    await _tokenService.clearTokens();
     await _auth.signOut();
   }
 

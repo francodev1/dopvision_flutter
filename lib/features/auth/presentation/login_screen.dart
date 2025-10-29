@@ -8,6 +8,7 @@ import '../../../shared/widgets/hybrid_button.dart';
 import '../../../shared/widgets/hybrid_text_field.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../../shared/widgets/gradient_background.dart';
+import '../../../shared/widgets/app_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,6 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -81,6 +83,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       await ref.read(authServiceProvider).signIn(
             _emailController.text.trim(),
             _passwordController.text,
+            rememberMe: _rememberMe,
           );
 
       if (mounted) {
@@ -141,31 +144,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // Logo
-                          Center(
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 1200),
-                              curve: Curves.elasticOut,
-                              builder: (context, value, child) {
-                                return Transform.scale(
-                                  scale: value,
-                                  child: Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      gradient: AppTheme.primaryGradient,
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: AppTheme.glowShadow(AppTheme.primary),
-                                    ),
-                                    child: const Icon(
-                                      CupertinoIcons.eye_fill,
-                                      color: Colors.white,
-                                      size: 40,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                          const Center(
+                            child: AppLogo(size: 80, animated: true),
                           ),
                           const SizedBox(height: 24),
 
@@ -240,9 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   alignment: Alignment.centerRight,
                                   child: CupertinoButton(
                                     padding: EdgeInsets.zero,
-                                    onPressed: () {
-                                      // TODO: Implement forgot password
-                                    },
+                                    onPressed: () => context.push('/forgot-password'),
                                     child: const Text(
                                       'Esqueceu a senha?',
                                       style: TextStyle(
@@ -252,6 +230,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       ),
                                     ),
                                   ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Remember Me Checkbox
+                                Row(
+                                  children: [
+                                    CupertinoCheckbox(
+                                      value: _rememberMe,
+                                      onChanged: (value) {
+                                        setState(() => _rememberMe = value ?? false);
+                                      },
+                                      activeColor: AppTheme.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Lembrar-me por 30 dias',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: AppTheme.textMuted,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 16),
 

@@ -20,9 +20,13 @@ void main() async {
     ),
   );
   
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('❌ Erro ao inicializar Firebase: $e');
+  }
 
   runApp(
     const ProviderScope(

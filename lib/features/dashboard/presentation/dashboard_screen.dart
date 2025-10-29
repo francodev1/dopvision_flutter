@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/auth_service.dart';
-import '../../../core/services/firestore_service.dart';
+// TODO PARTE 6: Refatorar para usar ClientRepository
+// import '../../../core/services/firestore_service.dart';
 import '../../../core/models/client.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -11,9 +12,11 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).value;
-    final clientsStream = ref
-        .watch(firestoreServiceProvider)
-        .getClients(user?.uid ?? '');
+    // TODO PARTE 6: Refatorar para usar ClientRepository
+    // final clientsStream = ref
+    //     .watch(firestoreServiceProvider)
+    //     .getClients(user?.uid ?? '');
+    final clientsStream = Stream<List<Client>>.value([]); // Placeholder
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -248,17 +251,21 @@ class DashboardScreen extends ConsumerWidget {
               onPressed: () async {
                 if (nameController.text.isEmpty) return;
                 
-                final client = Client(
-                  name: nameController.text,
-                  type: selectedType,
-                  userId: userId,
-                  segment: segmentController.text.isNotEmpty 
-                      ? segmentController.text 
-                      : null,
-                  createdAt: DateTime.now(),
-                );
+                // TODO PARTE 6: Refatorar para usar ClientRepository
+                // final client = Client(
+                //   name: nameController.text,
+                //   type: selectedType,
+                //   userId: userId,
+                //   segment: segmentController.text.isNotEmpty 
+                //       ? segmentController.text 
+                //       : null,
+                //   createdAt: DateTime.now(),
+                // );
 
-                await ref.read(firestoreServiceProvider).addClient(client);
+                // TODO PARTE 6: Refatorar para usar ClientRepository
+                // await ref.read(firestoreServiceProvider).addClient(client);
+                // await ref.read(clientRepositoryProvider).create(client);
+                
                 if (context.mounted) {
                   Navigator.pop(context);
                 }

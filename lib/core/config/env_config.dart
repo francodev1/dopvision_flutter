@@ -48,6 +48,12 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  // 🤖 Google Gemini Configuration
+  static const String geminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+    defaultValue: '',
+  );
+
   // 🔗 n8n Webhooks Configuration
   static const String n8nBaseUrl = String.fromEnvironment(
     'N8N_BASE_URL',

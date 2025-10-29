@@ -50,15 +50,15 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Colors.white.withOpacity(0.03),
-      Colors.white.withOpacity(0.01),
+      Colors.white.withValues(alpha: 0.03),
+      Colors.white.withValues(alpha: 0.01),
     ],
   );
 
   // ========== SHADOWS ==========
   static List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.2),
+      color: Colors.black.withValues(alpha: 0.2),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
@@ -66,7 +66,7 @@ class AppTheme {
 
   static List<BoxShadow> get elevatedShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.3),
+      color: Colors.black.withValues(alpha: 0.3),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -74,7 +74,7 @@ class AppTheme {
 
   static List<BoxShadow> glowShadow(Color color) => [
     BoxShadow(
-      color: color.withOpacity(0.4),
+      color: color.withValues(alpha: 0.4),
       blurRadius: 30,
       offset: const Offset(0, 10),
     ),
@@ -164,7 +164,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cardDark,
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.2),
+        shadowColor: Colors.black.withValues(alpha: 0.2),
         shape: RoundedRectangleBorder(
           borderRadius: radiusMedium,
           side: BorderSide(

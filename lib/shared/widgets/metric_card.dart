@@ -27,7 +27,6 @@ class _MetricCardState extends State<MetricCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  bool _isHovered = false;
 
   @override
   void initState() {
@@ -54,11 +53,9 @@ class _MetricCardState extends State<MetricCard>
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (_) {
-        setState(() => _isHovered = true);
         _controller.forward();
       },
       onExit: (_) {
-        setState(() => _isHovered = false);
         _controller.reverse();
       },
       child: ScaleTransition(
@@ -72,7 +69,7 @@ class _MetricCardState extends State<MetricCard>
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: (widget.iconColor ?? AppTheme.primary).withOpacity(0.15),
+                  color: (widget.iconColor ?? AppTheme.primary).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(

@@ -62,7 +62,7 @@ class _HybridTextFieldState extends State<HybridTextField> {
             boxShadow: _isFocused
                 ? [
                     BoxShadow(
-                      color: AppTheme.primary.withOpacity(0.2),
+                      color: AppTheme.primary.withValues(alpha: 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -76,7 +76,7 @@ class _HybridTextFieldState extends State<HybridTextField> {
             keyboardType: widget.keyboardType,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(10),
             ),
             style: const TextStyle(

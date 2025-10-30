@@ -1,1 +1,35 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"dopvision-c384b","appId":"1:968393153974:android:5489f8c91f310c4de27517","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"dopvision-c384b","appId":"1:968393153974:ios:8472e7f4972281bce27517","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"dopvision-c384b","configurations":{"android":"1:968393153974:android:5489f8c91f310c4de27517","ios":"1:968393153974:ios:8472e7f4972281bce27517","web":"1:968393153974:web:4c5788770780c5cfe27517"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "dopvision-c384b",
+          "appId": "1:968393153974:android:5489f8c91f310c4de27517",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "dopvision-c384b",
+          "appId": "1:968393153974:ios:8472e7f4972281bce27517",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "dopvision-c384b",
+          "configurations": {
+            "android": "1:968393153974:android:5489f8c91f310c4de27517",
+            "ios": "1:968393153974:ios:8472e7f4972281bce27517",
+            "web": "1:968393153974:web:4c5788770780c5cfe27517"
+          }
+        }
+      }
+    }
+  }
+}

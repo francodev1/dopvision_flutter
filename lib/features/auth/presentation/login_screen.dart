@@ -77,12 +77,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    // Validar email
+    if (email.isEmpty) {
+      _showError('Por favor, insira seu email');
+      return;
+    }
+
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    if (!emailRegex.hasMatch(email)) {
+      _showError('Email inválido');
+      return;
+    }
+
+    // Validar senha
+    if (password.isEmpty) {
+      _showError('Por favor, insira sua senha');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showError('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       await ref.read(authServiceProvider).signIn(
-            _emailController.text.trim(),
-            _passwordController.text,
+            email,
+            password,
             rememberMe: _rememberMe,
           );
 
@@ -91,36 +119,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
     } catch (e) {
       if (mounted) {
-        showCupertinoDialog(
-          context: context,
-          builder: (context) => CupertinoAlertDialog(
-            title: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.exclamationmark_triangle, color: AppTheme.danger, size: 20),
-                SizedBox(width: 8),
-                Text('Erro no Login'),
-              ],
-            ),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(e.toString()),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                child: const Text('OK'),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-        );
+        _showError(e.toString());
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showError(String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(CupertinoIcons.exclamationmark_triangle, color: AppTheme.danger, size: 20),
+            SizedBox(width: 8),
+            Text('Erro'),
+          ],
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(message),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -150,17 +182,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           const SizedBox(height: 24),
 
                           // Title
-                          const Text(
-                            '👁️ Bem-vindo',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textDark,
-                              letterSpacing: -0.5,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
+                          // const Text(
+                          //   '👁️ Bem-vindo',
+                          //   style: TextStyle(
+                          //     fontSize: 32,
+                          //     fontWeight: FontWeight.w700,
+                          //     color: AppTheme.textDark,
+                          //     letterSpacing: -0.5,
+                          //   ),
+                          //   textAlign: TextAlign.center,
+                          // ),
+                          // const SizedBox(height: 8),
 
                           // Subtitle
                           const Text(
@@ -246,7 +278,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Lembrar-me por 30 dias',
+                                        'Lembrar-me',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: AppTheme.textMuted,

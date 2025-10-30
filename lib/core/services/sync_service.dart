@@ -1,281 +1,98 @@
-// lib/core/services/sync_service.dart
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'connectivity_service.dart';
-import '../utils/logger.dart';
-import '../exceptions/app_exception.dart';
 
-/// 🔄 Sync Service
-/// 
-/// Gerencia sincronização offline-first entre cache local e Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:logger/logger.dart';
+
+import 'cache_service.dart';
+
 class SyncService {
-  final ConnectivityService _connectivity;
-  
-  final StreamController<SyncStatus> _statusController;
-  Timer? _syncTimer;
-  bool _isSyncing = false;
+  final CacheService cacheService;
+  final _logger = Logger();
+  Timer? _pollTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _isRunning = false;
 
-  SyncService({
-    required ConnectivityService connectivity,
-  })  : _connectivity = connectivity,
-        _statusController = StreamController<SyncStatus>.broadcast() {
-    _initialize();
-  }
+  SyncService({required this.cacheService});
 
-  void _initialize() {
-    // Monitorar mudanças de conectividade
-    _connectivity.onConnectivityChanged.listen((status) {
-      if (status != ConnectivityStatus.disconnected) {
-        AppLogger.info('✅ Conexão restaurada, iniciando sync');
-        sync();
+  Future<void> init() async {
+    await cacheService.init();
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      if (results.isNotEmpty && results.first != ConnectivityResult.none) {
+        _logger.i('Connectivity restored, triggering sync');
+        triggerSync();
       }
     });
-
-    // Sync periódico (a cada 5 minutos)
-    _syncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      sync();
-    });
+    _startPeriodic();
   }
 
-  // ============================================
-  // 🔄 Sincronização
-  // ============================================
+  void _startPeriodic() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => triggerSync());
+  }
 
-  /// Stream de status de sync
-  Stream<SyncStatus> get onSyncStatusChanged => _statusController.stream;
+  Future<void> dispose() async {
+    _pollTimer?.cancel();
+    await _connectivitySub?.cancel();
+  }
 
-  /// Está sincronizando?
-  bool get isSyncing => _isSyncing;
-
-  /// Sincroniza dados pendentes
-  Future<void> sync({bool force = false}) async {
-    // Evitar sync simultâneo
-    if (_isSyncing && !force) {
-      AppLogger.info('⏭️ Sync já em andamento, ignorando');
-      return;
-    }
-
-    // Verificar conectividade
-    if (!await _connectivity.isConnected) {
-      AppLogger.warning('⚠️ Sem conexão, sync adiado');
-      _updateStatus(SyncStatus.waitingForConnection);
-      return;
-    }
-
-    _isSyncing = true;
-    _updateStatus(SyncStatus.syncing);
-
+  Future<void> triggerSync() async {
+    if (_isRunning) return;
+    _isRunning = true;
     try {
-      AppLogger.info('🔄 Iniciando sincronização');
-
-      // 1. Sync pendências (uploads locais → Firestore)
-      await _syncPendingUploads();
-
-      // 2. Sync dados remotos (Firestore → local cache)
-      await _syncRemoteData();
-
-      AppLogger.info('✅ Sincronização concluída');
-      _updateStatus(SyncStatus.success);
-    } on SyncException catch (e) {
-      AppLogger.error('❌ Erro na sincronização', e);
-      _updateStatus(SyncStatus.error);
-      rethrow;
-    } catch (e, stack) {
-      AppLogger.error('❌ Erro inesperado no sync', e, stack);
-      _updateStatus(SyncStatus.error);
-      throw SyncException('Erro ao sincronizar: $e');
+      final pending = await cacheService.getPendingChanges();
+      if (pending.isEmpty) return;
+      _logger.i('Found ${pending.length} pending changes, processing...');
+      for (var entry in pending) {
+        await _processEntry(entry);
+      }
+    } catch (e, st) {
+      _logger.e('Sync error: $e', error: e, stackTrace: st);
     } finally {
-      _isSyncing = false;
+      _isRunning = false;
     }
   }
 
-  /// Sync apenas upload (local → remoto)
-  Future<void> syncUpload() async {
-    if (!await _connectivity.isConnected) {
-      throw SyncException('Sem conexão para upload');
-    }
+  Future<void> _processEntry(Map<String, dynamic> entry) async {
+    // In our implementation, we stored entries with auto-generated keys inside Hive; however
+    // the CacheService returns a list of maps without the hive key. We'll rely on id+collection to match.
+    final collection = entry['collection'] as String? ?? '';
+    final id = entry['id'] as String?;
+    final operation = entry['operation'] as String? ?? 'upsert';
+    final data = entry['data'] as Map<String, dynamic>?;
 
-    _updateStatus(SyncStatus.uploading);
-    await _syncPendingUploads();
-    _updateStatus(SyncStatus.success);
-  }
-
-  /// Sync apenas download (remoto → local)
-  Future<void> syncDownload() async {
-    if (!await _connectivity.isConnected) {
-      throw SyncException('Sem conexão para download');
-    }
-
-    _updateStatus(SyncStatus.downloading);
-    await _syncRemoteData();
-    _updateStatus(SyncStatus.success);
-  }
-
-  // ============================================
-  // 📤 Upload de Pendências
-  // ============================================
-
-  Future<void> _syncPendingUploads() async {
     try {
-      AppLogger.info('📤 Sincronizando pendências locais');
-
-      // TODO: Implementar lógica específica
-      // 1. Buscar operações pendentes do cache local (Hive)
-      // 2. Para cada operação:
-      //    - Tentar executar no Firestore
-      //    - Se sucesso, remover do cache de pendências
-      //    - Se erro, manter no cache para retry
-
-      // Exemplo (pseudo-código):
-      // final pendingOps = await _localCache.getPendingOperations();
-      // for (final op in pendingOps) {
-      //   try {
-      //     await _executePendingOperation(op);
-      //     await _localCache.removePendingOperation(op.id);
-      //   } catch (e) {
-      //     AppLogger.warning('⚠️ Falha ao sync operação ${op.id}');
-      //   }
-      // }
-
-      AppLogger.info('✅ Upload de pendências concluído');
-    } catch (e, stack) {
-      AppLogger.error('❌ Erro no upload de pendências', e, stack);
-      rethrow;
+      final firestore = FirebaseFirestore.instance;
+      if (operation == 'delete') {
+        await firestore.collection(collection).doc(id).delete();
+        _logger.i('Deleted remote $collection/$id');
+      } else {
+        // upsert
+        if (data == null) throw Exception('No data for upsert');
+        final sanitized = Map<String, dynamic>.from(data);
+        // Convert ISO date strings back to Timestamps when possible
+        sanitized.updateAll((k, v) {
+          if (v is String) {
+            final d = DateTime.tryParse(v);
+            if (d != null) return Timestamp.fromDate(d);
+          }
+          return v;
+        });
+        await firestore.collection(collection).doc(id).set(sanitized, SetOptions(merge: true));
+        _logger.i('Upserted remote $collection/$id');
+      }
+      // clear pending - find matching pending by id+collection
+      final pending = await cacheService.getPendingChanges();
+      for (var p in pending) {
+        if (p['id'] == id && p['collection'] == collection) {
+          // ideally we'd remove by hive key but our list lacks it; CacheService exposes clear by id
+          await cacheService.clearPendingChange(p['id'].toString());
+        }
+      }
+    } catch (e, st) {
+      _logger.w('Failed to sync entry $collection/$id: $e', error: e, stackTrace: st);
+      // Basic backoff: increase attempts and keep it for next run
+      // Not implemented detailed attempt count here due to simple MVP
     }
-  }
-
-  // ============================================
-  // 📥 Download de Dados Remotos
-  // ============================================
-
-  Future<void> _syncRemoteData() async {
-    try {
-      AppLogger.info('📥 Baixando dados remotos');
-
-      // TODO: Implementar lógica específica
-      // 1. Buscar timestamp do último sync
-      // 2. Buscar dados modificados após esse timestamp
-      // 3. Atualizar cache local com novos dados
-      // 4. Atualizar timestamp do último sync
-
-      // Exemplo (pseudo-código):
-      // final lastSync = await _localCache.getLastSyncTimestamp();
-      // 
-      // final newClients = await _clientRepo.getWhere(
-      //   filters: [QueryFilter(field: 'updatedAt', isGreaterThan: lastSync)],
-      // );
-      // await _localCache.saveClients(newClients);
-      //
-      // await _localCache.setLastSyncTimestamp(DateTime.now());
-
-      AppLogger.info('✅ Download de dados concluído');
-    } catch (e, stack) {
-      AppLogger.error('❌ Erro no download de dados', e, stack);
-      rethrow;
-    }
-  }
-
-  // ============================================
-  // 🎯 Sync Específico
-  // ============================================
-
-  /// Sincroniza clientes
-  Future<void> syncClients({String? userId}) async {
-    AppLogger.info('👥 Sincronizando clientes');
-    // TODO: Implementar sync específico de clientes
-  }
-
-  /// Sincroniza campanhas
-  Future<void> syncCampaigns({String? clientId}) async {
-    AppLogger.info('📢 Sincronizando campanhas');
-    // TODO: Implementar sync específico de campanhas
-  }
-
-  /// Sincroniza vendas
-  Future<void> syncSales({String? campaignId}) async {
-    AppLogger.info('💰 Sincronizando vendas');
-    // TODO: Implementar sync específico de vendas
-  }
-
-  // ============================================
-  // 🔔 Notificações de Sync
-  // ============================================
-
-  void _updateStatus(SyncStatus status) {
-    _statusController.add(status);
-    AppLogger.logSync('status_change: ${status.name}');
-  }
-
-  // ============================================
-  // 🛠️ Utilitários
-  // ============================================
-
-  /// Limpa cache local
-  Future<void> clearCache() async {
-    try {
-      AppLogger.warning('🗑️ Limpando cache local');
-      // TODO: Implementar limpeza do cache
-      AppLogger.info('✅ Cache limpo');
-    } catch (e, stack) {
-      AppLogger.error('❌ Erro ao limpar cache', e, stack);
-      rethrow;
-    }
-  }
-
-  /// Reseta sincronização (força full sync)
-  Future<void> resetSync() async {
-    try {
-      AppLogger.warning('🔄 Resetando sincronização');
-      // TODO: Resetar timestamp do último sync
-      await sync(force: true);
-    } catch (e, stack) {
-      AppLogger.error('❌ Erro ao resetar sync', e, stack);
-      rethrow;
-    }
-  }
-
-  // ============================================
-  // 🧹 Cleanup
-  // ============================================
-
-  void dispose() {
-    _syncTimer?.cancel();
-    _statusController.close();
   }
 }
-
-// ============================================
-// 📋 Enums
-// ============================================
-
-enum SyncStatus {
-  idle,
-  waitingForConnection,
-  syncing,
-  uploading,
-  downloading,
-  success,
-  error,
-}
-
-// ============================================
-// 🎯 Riverpod Provider
-// ============================================
-
-/// Provider do SyncService
-final syncServiceProvider = Provider<SyncService>((ref) {
-  final connectivity = ref.watch(connectivityServiceProvider);
-  
-  final service = SyncService(
-    connectivity: connectivity,
-  );
-  
-  ref.onDispose(() => service.dispose());
-  return service;
-});
-
-/// Provider do status de sync
-final syncStatusProvider = StreamProvider<SyncStatus>((ref) {
-  final service = ref.watch(syncServiceProvider);
-  return service.onSyncStatusChanged;
-});

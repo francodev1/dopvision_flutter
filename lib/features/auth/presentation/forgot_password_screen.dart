@@ -191,10 +191,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                                 width: 80,
                                 height: 80,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.success.withOpacity(0.2),
+                                  color: AppTheme.success.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: AppTheme.success.withOpacity(0.3),
+                                    color: AppTheme.success.withValues(alpha: 0.3),
                                     width: 2,
                                   ),
                                 ),

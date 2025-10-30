@@ -3,7 +3,7 @@ import 'package:logger/logger.dart';
 import 'package:flutter/foundation.dart';
 import '../config/env_config.dart';
 
-/// 📝 Sistema centralizado de logging
+/// Sistema centralizado de logging
 /// 
 /// Fornece logging colorido em desenvolvimento e integração com Sentry em produção.
 class AppLogger {
@@ -13,14 +13,14 @@ class AppLogger {
       errorMethodCount: 8,
       lineLength: 120,
       colors: true,
-      printEmojis: true,
+      printEmojis: false,
       dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
     ),
     level: kDebugMode ? Level.debug : Level.info,
   );
 
   // ============================================
-  // 🐛 Debug - apenas em desenvolvimento
+  // Debug - apenas em desenvolvimento
   // ============================================
   static void debug(String message, [dynamic error, StackTrace? stackTrace]) {
     if (kDebugMode) {
@@ -29,7 +29,7 @@ class AppLogger {
   }
 
   // ============================================
-  // ℹ️ Info - informações gerais
+  // Info - informações gerais
   // ============================================
   static void info(String message, [Map<String, dynamic>? extra]) {
     _logger.i(message);
@@ -45,7 +45,7 @@ class AppLogger {
   }
 
   // ============================================
-  // ⚠️ Warning - avisos importantes
+  // Warning - avisos importantes
   // ============================================
   static void warning(
     String message, [
@@ -65,7 +65,7 @@ class AppLogger {
   }
 
   // ============================================
-  // 🔴 Error - erros críticos
+  // Error - erros críticos
   // ============================================
   static void error(
     String message, [
@@ -87,7 +87,7 @@ class AppLogger {
   }
 
   // ============================================
-  // ☠️ Fatal - erros que causam crash
+  // Fatal - erros que causam crash
   // ============================================
   static void fatal(
     String message,
@@ -106,11 +106,11 @@ class AppLogger {
   }
 
   // ============================================
-  // 📊 Event tracking
+  // Event tracking
   // ============================================
   static void logEvent(String eventName, Map<String, dynamic> parameters) {
     if (kDebugMode) {
-      _logger.i('📊 Event: $eventName', error: parameters);
+      _logger.i('Event: $eventName', error: parameters);
     }
     
     // TODO: Firebase Analytics
@@ -123,14 +123,14 @@ class AppLogger {
   }
 
   // ============================================
-  // 👤 User action tracking
+  // User action tracking
   // ============================================
   static void logUserAction(String action, [Map<String, dynamic>? data]) {
-    info('👤 User Action: $action', data);
+    info('User Action: $action', data);
   }
 
   // ============================================
-  // 🌐 API request logging
+  // API request logging
   // ============================================
   static void logApiRequest(
     String method,
@@ -138,12 +138,12 @@ class AppLogger {
     Map<String, dynamic>? data,
   ]) {
     if (kDebugMode) {
-      _logger.d('🌐 API Request: $method $url', error: data);
+      _logger.d('API Request: $method $url', error: data);
     }
   }
 
   // ============================================
-  // 🌐 API response logging
+  // API response logging
   // ============================================
   static void logApiResponse(
     int statusCode,
@@ -151,64 +151,64 @@ class AppLogger {
     dynamic data,
   ]) {
     if (kDebugMode) {
-      final emoji = statusCode >= 200 && statusCode < 300 ? '✅' : '❌';
-      _logger.d('$emoji API Response: $statusCode $url', error: data);
+      final status = statusCode >= 200 && statusCode < 300 ? 'SUCCESS' : 'FAILED';
+      _logger.d('API Response [$status]: $statusCode $url', error: data);
     }
   }
 
   // ============================================
-  // 🔄 Sync logging
+  // Sync logging
   // ============================================
   static void logSync(String operation, {bool success = true}) {
     if (kDebugMode) {
-      final emoji = success ? '✅' : '❌';
-      _logger.d('$emoji Sync: $operation');
+      final status = success ? 'SUCCESS' : 'FAILED';
+      _logger.d('Sync [$status]: $operation');
     }
   }
 
   // ============================================
-  // 🤖 AI logging
+  // AI logging
   // ============================================
   static void logAI(String operation, [Map<String, dynamic>? data]) {
     if (kDebugMode) {
-      _logger.d('🤖 AI: $operation', error: data);
+      _logger.d('AI: $operation', error: data);
     }
   }
 
   // ============================================
-  // 🔔 Notification logging
+  // Notification logging
   // ============================================
   static void logNotification(String title, [String? body]) {
     if (kDebugMode) {
-      _logger.d('🔔 Notification: $title${body != null ? ' - $body' : ''}');
+      _logger.d('Notification: $title${body != null ? ' - $body' : ''}');
     }
   }
 
   // ============================================
-  // 💾 Cache logging
+  // Cache logging
   // ============================================
   static void logCache(String operation, String key, {bool hit = false}) {
     if (kDebugMode) {
-      final emoji = hit ? '✅' : '❌';
-      _logger.d('💾 Cache $operation: $key $emoji');
+      final status = hit ? 'HIT' : 'MISS';
+      _logger.d('Cache $operation: $key [$status]');
     }
   }
 
   // ============================================
-  // 🔗 Navigation logging
+  // Navigation logging
   // ============================================
   static void logNavigation(String route, [Map<String, dynamic>? params]) {
     if (kDebugMode) {
-      _logger.d('🔗 Navigation: $route', error: params);
+      _logger.d('Navigation: $route', error: params);
     }
   }
 
   // ============================================
-  // ⏱️ Performance logging
+  // Performance logging
   // ============================================
   static void logPerformance(String operation, Duration duration) {
     if (kDebugMode) {
-      _logger.d('⏱️ Performance: $operation took ${duration.inMilliseconds}ms');
+      _logger.d('Performance: $operation took ${duration.inMilliseconds}ms');
     }
   }
 }

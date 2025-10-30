@@ -1,0 +1,182 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ============================================
+    // 🔐 FUNÇÕES AUXILIARES
+    // ============================================
+    
+    /// Verifica se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    /// Verifica se é o próprio usuário
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    /// Valida tamanho máximo do arquivo (em MB)
+    function isUnderSizeLimit(sizeMB) {
+      return request.resource.size < sizeMB * 1024 * 1024;
+    }
+    
+    /// Valida tipo de imagem
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    /// Valida tipo de vídeo
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+    
+    /// Valida tipo de documento
+    function isDocument() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/vnd.ms-excel') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') ||
+             request.resource.contentType.matches('text/csv');
+    }
+    
+    // ============================================
+    // 👤 USER UPLOADS
+    // ============================================
+    
+    /// Fotos de perfil dos usuários
+    match /users/{userId}/profile/{fileName} {
+      // Leitura: autenticado
+      allow read: if isAuthenticated();
+      
+      // Escrita: apenas o próprio usuário, imagens até 5MB
+      allow write: if isOwner(userId) && 
+                     isImage() && 
+                     isUnderSizeLimit(5);
+      
+      // Deleção: apenas o próprio usuário
+      allow delete: if isOwner(userId);
+    }
+    
+    /// Documentos e arquivos gerais do usuário
+    match /users/{userId}/documents/{fileName} {
+      // Leitura e escrita: apenas o próprio usuário
+      allow read, write: if isOwner(userId) && 
+                           isDocument() && 
+                           isUnderSizeLimit(10);
+      
+      // Deleção: apenas o próprio usuário
+      allow delete: if isOwner(userId);
+    }
+    
+    // ============================================
+    // 🏢 CLIENT UPLOADS
+    // ============================================
+    
+    /// Logos e imagens dos clientes
+    match /clients/{clientId}/images/{fileName} {
+      // Leitura: autenticado
+      allow read: if isAuthenticated();
+      
+      // Escrita: imagens até 5MB
+      allow write: if isAuthenticated() && 
+                     isImage() && 
+                     isUnderSizeLimit(5);
+      
+      // Deleção: autenticado
+      allow delete: if isAuthenticated();
+    }
+    
+    /// Documentos dos clientes (contratos, etc)
+    match /clients/{clientId}/documents/{fileName} {
+      // Leitura e escrita: autenticado, documentos até 20MB
+      allow read, write: if isAuthenticated() && 
+                           isDocument() && 
+                           isUnderSizeLimit(20);
+      
+      // Deleção: autenticado
+      allow delete: if isAuthenticated();
+    }
+    
+    // ============================================
+    // 📢 CAMPAIGN UPLOADS
+    // ============================================
+    
+    /// Criativos das campanhas (imagens)
+    match /campaigns/{campaignId}/creatives/images/{fileName} {
+      // Leitura: autenticado
+      allow read: if isAuthenticated();
+      
+      // Escrita: imagens até 10MB
+      allow write: if isAuthenticated() && 
+                     isImage() && 
+                     isUnderSizeLimit(10);
+      
+      // Deleção: autenticado
+      allow delete: if isAuthenticated();
+    }
+    
+    /// Criativos das campanhas (vídeos)
+    match /campaigns/{campaignId}/creatives/videos/{fileName} {
+      // Leitura: autenticado
+      allow read: if isAuthenticated();
+      
+      // Escrita: vídeos até 50MB
+      allow write: if isAuthenticated() && 
+                     isVideo() && 
+                     isUnderSizeLimit(50);
+      
+      // Deleção: autenticado
+      allow delete: if isAuthenticated();
+    }
+    
+    /// Relatórios e documentos das campanhas
+    match /campaigns/{campaignId}/reports/{fileName} {
+      // Leitura e escrita: autenticado, documentos até 15MB
+      allow read, write: if isAuthenticated() && 
+                           isDocument() && 
+                           isUnderSizeLimit(15);
+      
+      // Deleção: autenticado
+      allow delete: if isAuthenticated();
+    }
+    
+    // ============================================
+    // 📊 ANALYTICS EXPORTS
+    // ============================================
+    
+    /// Exports e relatórios gerados
+    match /exports/{userId}/{fileName} {
+      // Leitura: apenas o próprio usuário
+      allow read: if isOwner(userId);
+      
+      // Escrita: não permitida pelo app (gerado por Cloud Functions)
+      allow write: if false;
+      
+      // Deleção: apenas o próprio usuário
+      allow delete: if isOwner(userId);
+    }
+    
+    // ============================================
+    // 🗂️ TEMPORARY UPLOADS
+    // ============================================
+    
+    /// Uploads temporários (processamento, etc)
+    match /temp/{userId}/{fileName} {
+      // Leitura e escrita: apenas o próprio usuário
+      allow read, write: if isOwner(userId) && 
+                           isUnderSizeLimit(50);
+      
+      // Deleção: apenas o próprio usuário ou após 24h (via Cloud Functions)
+      allow delete: if isOwner(userId);
+    }
+    
+    // ============================================
+    // 🚫 REGRA PADRÃO: NEGAR TUDO
+    // ============================================
+    
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

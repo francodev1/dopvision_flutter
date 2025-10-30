@@ -5,6 +5,7 @@ class Client {
   final String name;
   final ClientType type;
   final String? userId;
+  final String? status;
   final String? segment;
   final double? monthlyGoal;
   final GoalType? goalType;
@@ -19,6 +20,7 @@ class Client {
     required this.name,
     required this.type,
     this.userId,
+    this.status,
     this.segment,
     this.monthlyGoal,
     this.goalType,
@@ -39,6 +41,7 @@ class Client {
         orElse: () => ClientType.online,
       ),
       userId: data['userId'],
+      status: data['status'],
       segment: data['segment'],
       monthlyGoal: data['monthlyGoal']?.toDouble(),
       goalType: data['goalType'] != null
@@ -61,6 +64,7 @@ class Client {
       'name': name,
       'type': type.name,
       'userId': userId,
+      'status': status ?? 'active',
       'segment': segment,
       'monthlyGoal': monthlyGoal,
       'goalType': goalType?.name,
@@ -69,6 +73,7 @@ class Client {
       'notes': notes,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
+      'isDeleted': false,
     };
   }
 }

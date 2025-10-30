@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Script para gerar os assets do logo do app
@@ -9,14 +9,14 @@ import 'package:path_provider/path_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  print('🎨 Gerando assets do logo...');
+  if (kDebugMode) debugPrint('🎨 Gerando assets do logo...');
   
   await _generateLogo(1024, 'logo.png');
   await _generateLogo(1024, 'logo_foreground.png', transparent: true);
   await _generateLogo(1024, 'splash_logo.png');
   
-  print('✅ Assets gerados com sucesso!');
-  print('📁 Copie os arquivos da pasta temporária para assets/images/');
+  if (kDebugMode) debugPrint('✅ Assets gerados com sucesso!');
+  if (kDebugMode) debugPrint('📁 Copie os arquivos da pasta temporária para assets/images/');
   
   exit(0);
 }
@@ -74,12 +74,12 @@ Future<void> _generateLogo(int size, String filename, {bool transparent = false}
   final file = File('${tempDir.path}/$filename');
   await file.writeAsBytes(buffer);
   
-  print('✓ Gerado: ${file.path}');
+  if (kDebugMode) debugPrint('✓ Gerado: ${file.path}');
 }
 
 void _drawPattern(Canvas canvas, Rect rect) {
   final paint = Paint()
-    ..color = Colors.white.withOpacity(0.1)
+  ..color = Colors.white.withValues(alpha: 0.1)
     ..strokeWidth = 4
     ..style = PaintingStyle.stroke;
   

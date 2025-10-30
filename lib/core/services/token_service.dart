@@ -2,7 +2,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'firebase_auth_service.dart';
+// import 'firebase_auth_service.dart'; // unused import removed
 import '../utils/logger.dart';
 
 /// 🔐 Token Service
@@ -48,14 +48,14 @@ class TokenService {
         await prefs.setString(_refreshTokenKey, refreshToken);
       }
       
-      AppLogger.info('✅ Tokens salvos. Expira em: ${accessTokenDuration.inMinutes} minutos');
+      AppLogger.info('Tokens salvos. Expira em: ${accessTokenDuration.inMinutes} minutos');
       
       // Inicia timer de refresh automático
       _startRefreshTimer();
       
       _statusController.add(TokenStatus.active);
     } catch (e, stack) {
-      AppLogger.error('❌ Erro ao salvar tokens', e, stack);
+      AppLogger.error('Erro ao salvar tokens', e, stack);
       throw Exception('Erro ao salvar tokens: $e');
     }
   }
@@ -70,7 +70,7 @@ class TokenService {
       
       // Verifica se expirou
       if (await isTokenExpired()) {
-        AppLogger.warning('⚠️ Access token expirado');
+        AppLogger.warning('Access token expirado');
         
         // Tenta renovar
         final renewed = await renewAccessToken();
@@ -83,7 +83,7 @@ class TokenService {
       
       return token;
     } catch (e) {
-      AppLogger.error('❌ Erro ao obter access token', e);
+      AppLogger.error('Erro ao obter access token', e);
       return null;
     }
   }
@@ -101,7 +101,7 @@ class TokenService {
       
       return now.isAfter(expiry);
     } catch (e) {
-      AppLogger.error('❌ Erro ao verificar expiração', e);
+      AppLogger.error('Erro ao verificar expiração', e);
       return true;
     }
   }
@@ -125,6 +125,9 @@ class TokenService {
     }
   }
 
+  /// Alias para getTimeUntilExpiry (mais semântico)
+  Future<Duration?> getRemainingTime() => getTimeUntilExpiry();
+
   /// Renova access token usando refresh token
   Future<bool> renewAccessToken() async {
     try {
@@ -132,12 +135,12 @@ class TokenService {
       final refreshToken = prefs.getString(_refreshTokenKey);
       
       if (refreshToken == null) {
-        AppLogger.warning('⚠️ Refresh token não encontrado');
+        AppLogger.warning('Refresh token não encontrado');
         _statusController.add(TokenStatus.expired);
         return false;
       }
       
-      AppLogger.info('🔄 Renovando access token...');
+      AppLogger.info('Renovando access token...');
       _statusController.add(TokenStatus.refreshing);
       
       // No Firebase, o token é renovado automaticamente pelo SDK
@@ -147,12 +150,12 @@ class TokenService {
       
       await prefs.setString(_tokenExpiryKey, newExpiry.toIso8601String());
       
-      AppLogger.info('✅ Access token renovado com sucesso');
+      AppLogger.info('Access token renovado com sucesso');
       _statusController.add(TokenStatus.active);
       
       return true;
     } catch (e, stack) {
-      AppLogger.error('❌ Erro ao renovar token', e, stack);
+      AppLogger.error('Erro ao renovar token', e, stack);
       _statusController.add(TokenStatus.error);
       return false;
     }
@@ -172,11 +175,11 @@ class TokenService {
       
       // Renova 5 minutos antes de expirar
       if (timeUntil <= refreshBeforeExpiry) {
-        AppLogger.info('⏰ Token próximo de expirar. Renovando...');
+        AppLogger.info('Token próximo de expirar. Renovando...');
         final renewed = await renewAccessToken();
         
         if (!renewed) {
-          AppLogger.warning('⚠️ Falha ao renovar token. Deslogando usuário.');
+          AppLogger.warning('Falha ao renovar token. Deslogando usuário.');
           await clearTokens();
           _statusController.add(TokenStatus.expired);
           timer.cancel();
@@ -204,10 +207,10 @@ class TokenService {
       _refreshTimer?.cancel();
       _refreshTimer = null;
       
-      AppLogger.info('🚪 Tokens limpos (logout)');
+      AppLogger.info('Tokens limpos (logout)');
       _statusController.add(TokenStatus.cleared);
     } catch (e, stack) {
-      AppLogger.error('❌ Erro ao limpar tokens', e, stack);
+      AppLogger.error('Erro ao limpar tokens', e, stack);
     }
   }
 

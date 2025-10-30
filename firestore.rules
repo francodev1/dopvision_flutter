@@ -1,0 +1,224 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // 🔐 FUNÇÕES AUXILIARES
+    // ============================================
+    
+    /// Verifica se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    /// Verifica se é o próprio usuário
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    /// Verifica se os dados obrigatórios estão presentes
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    /// Verifica se não está tentando modificar campos protegidos
+    function notModifyingProtectedFields(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+    
+    // ============================================
+    // 👤 USERS COLLECTION
+    // ============================================
+    
+    match /users/{userId} {
+      // Leitura: apenas o próprio usuário
+      allow read: if isOwner(userId);
+      
+      // Criação: apenas o próprio usuário
+      allow create: if isOwner(userId) &&
+                      hasRequiredFields(['email', 'displayName', 'createdAt', 'updatedAt']);
+      
+      // Atualização: apenas o próprio usuário, sem modificar createdAt
+      allow update: if isOwner(userId) &&
+                      notModifyingProtectedFields(['createdAt', 'uid']);
+      
+      // Deleção: não permitido (usar soft delete via campo isDeleted)
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // 🏢 CLIENTS COLLECTION
+    // ============================================
+    
+    match /clients/{clientId} {
+      /// Verifica se o usuário é dono do cliente
+      function isClientOwner() {
+        return isAuthenticated() && 
+               request.auth.uid == resource.data.userId;
+      }
+      
+      /// Valida dados do cliente
+      function isValidClient() {
+        return hasRequiredFields(['name', 'type', 'userId', 'status', 'isDeleted']) &&
+               request.resource.data.name is string &&
+               request.resource.data.name.size() > 0 &&
+               request.resource.data.userId == request.auth.uid;
+      }
+      
+      // Leitura: apenas clientes do usuário autenticado que não foram deletados
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid &&
+                    resource.data.isDeleted == false;
+      
+      // Criação: usuário autenticado, validação de campos
+      allow create: if isAuthenticated() && 
+                      isValidClient();
+      
+      // Atualização: apenas o dono, sem modificar userId e createdAt
+      allow update: if isClientOwner() &&
+                      notModifyingProtectedFields(['userId', 'createdAt']) &&
+                      isValidClient();
+      
+      // Deleção: não permitido direto (usar soft delete)
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // 📢 CAMPAIGNS COLLECTION
+    // ============================================
+    
+    match /campaigns/{campaignId} {
+      /// Verifica se o usuário é dono da campanha
+      function isCampaignOwner() {
+        return isAuthenticated() && 
+               request.auth.uid == resource.data.userId;
+      }
+      
+      /// Valida dados da campanha
+      function isValidCampaign() {
+        return hasRequiredFields(['name', 'clientId', 'userId', 'platform', 'status', 'type', 'isDeleted']) &&
+               request.resource.data.name is string &&
+               request.resource.data.name.size() > 0 &&
+               request.resource.data.userId == request.auth.uid;
+      }
+      
+      /// Verifica se o cliente pertence ao usuário
+      function isClientOwnedByUser(clientId) {
+        return exists(/databases/$(database)/documents/clients/$(clientId)) &&
+               get(/databases/$(database)/documents/clients/$(clientId)).data.userId == request.auth.uid;
+      }
+      
+      // Leitura: apenas campanhas do usuário que não foram deletadas
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid &&
+                    resource.data.isDeleted == false;
+      
+      // Criação: usuário autenticado, validação de campos, cliente pertence ao usuário
+      allow create: if isAuthenticated() && 
+                      isValidCampaign() &&
+                      isClientOwnedByUser(request.resource.data.clientId);
+      
+      // Atualização: apenas o dono, sem modificar userId/clientId/createdAt
+      allow update: if isCampaignOwner() &&
+                      notModifyingProtectedFields(['userId', 'clientId', 'createdAt']) &&
+                      isValidCampaign();
+      
+      // Deleção: não permitido direto (usar soft delete)
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // 💰 SALES COLLECTION
+    // ============================================
+    
+    match /sales/{saleId} {
+      /// Verifica se o usuário é dono da venda
+      function isSaleOwner() {
+        return isAuthenticated() && 
+               request.auth.uid == resource.data.userId;
+      }
+      
+      /// Valida dados da venda
+      function isValidSale() {
+        return hasRequiredFields(['clientId', 'userId', 'amount', 'status', 'date', 'isDeleted']) &&
+               request.resource.data.amount is number &&
+               request.resource.data.amount >= 0 &&
+               request.resource.data.userId == request.auth.uid &&
+               request.resource.data.date is timestamp;
+      }
+      
+      /// Verifica se o cliente pertence ao usuário
+      function isClientOwnedByUser(clientId) {
+        return exists(/databases/$(database)/documents/clients/$(clientId)) &&
+               get(/databases/$(database)/documents/clients/$(clientId)).data.userId == request.auth.uid;
+      }
+      
+      // Leitura: apenas vendas do usuário que não foram deletadas
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid &&
+                    resource.data.isDeleted == false;
+      
+      // Criação: usuário autenticado, validação de campos, cliente pertence ao usuário
+      allow create: if isAuthenticated() && 
+                      isValidSale() &&
+                      isClientOwnedByUser(request.resource.data.clientId);
+      
+      // Atualização: apenas o dono, sem modificar userId/clientId/createdAt
+      allow update: if isSaleOwner() &&
+                      notModifyingProtectedFields(['userId', 'clientId', 'createdAt']) &&
+                      isValidSale();
+      
+      // Deleção: não permitido direto (usar soft delete)
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // 📊 ANALYTICS COLLECTION (somente leitura)
+    // ============================================
+    
+    match /analytics/{analyticId} {
+      // Leitura: apenas dados do próprio usuário
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Escrita: não permitida pelo app (apenas via Cloud Functions)
+      allow write: if false;
+    }
+    
+    // ============================================
+    // 🔔 NOTIFICATIONS COLLECTION
+    // ============================================
+    
+    match /notifications/{notificationId} {
+      // Leitura: apenas notificações do próprio usuário
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Atualização: apenas para marcar como lida
+      allow update: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid &&
+                      request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      
+      // Criação e deleção: não permitidas pelo app
+      allow create, delete: if false;
+    }
+    
+    // ============================================
+    // ⚙️ SETTINGS COLLECTION
+    // ============================================
+    
+    match /settings/{userId} {
+      // Leitura e escrita: apenas o próprio usuário
+      allow read, write: if isOwner(userId);
+    }
+    
+    // ============================================
+    // 🚫 REGRA PADRÃO: NEGAR TUDO
+    // ============================================
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -67,7 +67,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoggedIn = authState.value != null;
       final currentPath = state.matchedLocation;
-      final isAuthScreen = currentPath == '/login' || currentPath == '/register';
+      final isAuthScreen = currentPath == '/login' || 
+                           currentPath == '/register' ||
+                           currentPath == '/forgot-password' ||
+                           currentPath == '/privacy-policy' ||
+                           currentPath == '/terms-of-service';
       final isSplash = currentPath == '/splash';
 
       // Se terminou de carregar e está na splash, redireciona

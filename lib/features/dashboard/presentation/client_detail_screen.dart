@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/client.dart';
 import '../../../core/repositories/client_repository.dart';
+import 'widgets/performance_metrics_card.dart';
 
 class ClientDetailScreen extends ConsumerWidget {
   final Client client;
@@ -196,6 +197,8 @@ class ClientDetailScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         _buildMetricsCard(),
         const SizedBox(height: 16),
+        PerformanceMetricsCard(clientId: client.id ?? ''),
+        const SizedBox(height: 16),
         _buildSalesFunnelCard(),
         const SizedBox(height: 16),
         _buildQuickActionsCard(),
@@ -214,6 +217,8 @@ class ClientDetailScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   _buildInfoCard(),
+                  const SizedBox(height: 24),
+                  PerformanceMetricsCard(clientId: client.id ?? ''),
                   const SizedBox(height: 24),
                   _buildSalesFunnelCard(),
                 ],

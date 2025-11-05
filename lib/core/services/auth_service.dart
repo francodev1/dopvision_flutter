@@ -214,13 +214,31 @@ class AuthService {
     }
   }
 
-  // Reset password
-  Future<void> resetPassword(String email) async {
+  // Reset password - sends password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      // OWASP M7: Sanitiza input
+      final sanitizedEmail = _securityService.sanitizeInput(email.trim().toLowerCase());
+      
+      // OWASP M7: Valida formato de email
+      if (!_securityService.isValidEmail(sanitizedEmail)) {
+        throw 'Email inválido';
+      }
+
+      await _auth.sendPasswordResetEmail(email: sanitizedEmail);
+      
+      // LGPD: Audit log
+      _securityService.auditLog('PASSWORD_RESET_REQUESTED', metadata: {
+        'email': sanitizedEmail,
+      });
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
+  }
+
+  // Alias para compatibilidade com código existente
+  Future<void> resetPassword(String email) async {
+    return sendPasswordResetEmail(email);
   }
 
   String _handleAuthException(FirebaseAuthException e) {

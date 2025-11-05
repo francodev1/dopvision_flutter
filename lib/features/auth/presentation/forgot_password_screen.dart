@@ -28,21 +28,38 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _handleResetPassword() async {
-    if (_emailController.text.trim().isEmpty) {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
       _showError('Por favor, insira seu email');
+      return;
+    }
+
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    if (!emailRegex.hasMatch(email)) {
+      _showError('Email inválido');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authServiceProvider).resetPassword(
-            _emailController.text.trim(),
-          );
-
-      setState(() => _emailSent = true);
+      await ref.read(authServiceProvider).sendPasswordResetEmail(email);
+      
+      if (mounted) {
+        setState(() => _emailSent = true);
+        _showSuccess(
+          'Email enviado!',
+          'Verifique seu email para instruções de redefinição de senha.',
+        );
+      }
     } catch (e) {
-      _showError(e.toString());
+      if (mounted) {
+        final errorMessage = _translateAuthError(e.toString());
+        _showError(errorMessage);
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -75,6 +92,63 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         ],
       ),
     );
+  }
+
+  void _showSuccess(String title, String message) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(CupertinoIcons.checkmark_circle_fill, color: AppTheme.success, size: 20),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(message),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.pop(context);
+              if (_emailSent) {
+                context.pop();
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _translateAuthError(String error) {
+    if (error.contains('user-not-found')) {
+      return 'Email não encontrado. Verifique ou crie uma nova conta.';
+    }
+    if (error.contains('invalid-email')) {
+      return 'Email inválido. Verifique o formato.';
+    }
+    if (error.contains('too-many-requests')) {
+      return 'Muitas tentativas. Tente novamente mais tarde.';
+    }
+    if (error.contains('network-request-failed')) {
+      return 'Erro de conexão. Verifique sua internet.';
+    }
+    
+    if (error.contains('[firebase_auth')) {
+      final start = error.indexOf('] ') + 2;
+      if (start > 1 && start < error.length) {
+        final message = error.substring(start);
+        return 'Erro: $message';
+      }
+    }
+    
+    return error;
   }
 
   @override

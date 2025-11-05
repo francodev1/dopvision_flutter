@@ -814,11 +814,21 @@ class ClientDetailScreen extends ConsumerWidget {
                         // Excluir o cliente do Firestore (soft delete)
                         await ref.read(clientRepositoryProvider).softDelete(client.id!);
                         
-                        Navigator.pop(context); // Fecha o dialog
-                        await Future.delayed(const Duration(milliseconds: 100));
-                        Navigator.pop(context); // Volta pro dashboard
-                        await Future.delayed(const Duration(milliseconds: 200));
+                        // Fecha o dialog
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
                         
+                        // Aguarda um pouco para o dialog fechar
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        
+                        // Volta pro dashboard
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                        
+                        // Mostra o toast de sucesso
+                        await Future.delayed(const Duration(milliseconds: 200));
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -829,8 +839,8 @@ class ClientDetailScreen extends ConsumerWidget {
                           );
                         }
                       } catch (e) {
-                        Navigator.pop(context);
                         if (context.mounted) {
+                          Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Erro ao excluir: $e'),

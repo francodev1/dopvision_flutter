@@ -119,7 +119,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showError(e.toString());
+        final errorMessage = _translateAuthError(e.toString());
+        _showError(errorMessage);
       }
     } finally {
       if (mounted) {
@@ -153,6 +154,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ],
       ),
     );
+  }
+
+  String _translateAuthError(String error) {
+    // Traduzir erros comuns do Firebase para português
+    if (error.contains('user-not-found')) {
+      return 'Email não encontrado. Verifique seu email ou crie uma nova conta.';
+    }
+    if (error.contains('wrong-password')) {
+      return 'Senha incorreta. Tente novamente ou clique em "Esqueceu a senha?".';
+    }
+    if (error.contains('invalid-email')) {
+      return 'Email inválido. Verifique o formato e tente novamente.';
+    }
+    if (error.contains('user-disabled')) {
+      return 'Sua conta foi desativada. Entre em contato com o suporte.';
+    }
+    if (error.contains('too-many-requests')) {
+      return 'Muitas tentativas. Tente novamente mais tarde.';
+    }
+    if (error.contains('network-request-failed')) {
+      return 'Erro de conexão. Verifique sua internet e tente novamente.';
+    }
+    
+    // Se for um erro Firebase genérico, extrair a mensagem
+    if (error.contains('[firebase_auth')) {
+      final start = error.indexOf('] ') + 2;
+      final message = error.substring(start);
+      return 'Erro ao fazer login: $message';
+    }
+    
+    return error;
   }
 
   @override
